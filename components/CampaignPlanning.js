@@ -47,7 +47,7 @@ function CampaignForm({ kind, values, onChange, onSubmit, onCancel, submitLabel 
           <TextInput
             value={values.name}
             onChange={(event) => onChange({ ...values, name: event.target.value })}
-            placeholder="Kampagnenname"
+            placeholder="Channel_Campaign name"
             required
           />
         </Field>
@@ -74,7 +74,7 @@ function CampaignForm({ kind, values, onChange, onSubmit, onCancel, submitLabel 
           <TextInput
             value={values.budget}
             onChange={(event) => onChange({ ...values, budget: event.target.value })}
-            placeholder="2500"
+            placeholder={isCurrent ? "2500" : "2000"}
             inputMode="decimal"
             required
           />
@@ -137,24 +137,24 @@ function PlanningTable({ columns, rows, emptyLabel, onEdit, onDelete }) {
                   </td>
                 ))}
                 <td className="p-4 print:hidden">
-                <div className="flex justify-end gap-2 print:hidden">
-  <button
-    type="button"
-    onClick={() => onEdit(row)}
-    title="Bearbeiten"
-    className="inline-flex items-center justify-center rounded-xl border border-white/50 bg-white/40 hover:bg-white/60 backdrop-blur-sm p-2 text-slate-700 shadow-sm transition-all hover:scale-105"
-  >
-    <Pencil size={16} />
-  </button>
-  <button
-    type="button"
-    onClick={() => onDelete(row)}
-    title="Löschen"
-    className="inline-flex items-center justify-center rounded-xl border border-red-200/50 bg-red-50/50 hover:bg-red-100/60 backdrop-blur-sm p-2 text-red-600 shadow-sm transition-all hover:scale-105"
-  >
-    <Trash2 size={16} />
-  </button>
-</div>
+                  <div className="flex justify-end gap-2 print:hidden">
+                    <button
+                      type="button"
+                      onClick={() => onEdit(row)}
+                      title="Bearbeiten"
+                      className="inline-flex items-center justify-center rounded-xl border border-white/50 bg-white/40 hover:bg-white/60 backdrop-blur-sm p-2 text-slate-700 shadow-sm transition-all hover:scale-105"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDelete(row)}
+                      title="Löschen"
+                      className="inline-flex items-center justify-center rounded-xl border border-red-200/50 bg-red-50/50 hover:bg-red-100/60 backdrop-blur-sm p-2 text-red-600 shadow-sm transition-all hover:scale-105"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))
@@ -178,8 +178,27 @@ export default function CampaignPlanning() {
 
   useEffect(() => {
     const stored = loadPlanningState();
-    setCurrent(stored.current);
-    setPlanned(stored.planned);
+    
+    // 智能检测是否为旧版的默认多行数据 (例如包含 Lieferanten 或 Microsoft Dynamics Migration)
+    const hasOldMockData = 
+      stored?.current?.some(c => c.name === 'Lieferanten') || 
+      stored?.planned?.some(p => p.name === 'Microsoft Dynamics Migration');
+
+    if (!stored || (stored.current.length === 0 && stored.planned.length === 0) || hasOldMockData) {
+      // 如果是空数据或旧默认数据，强制覆盖为你要求的单行默认值
+      const newCurrent = [{ id: createCampaignId('current'), name: 'Channel_Campaign name', laufzeit: '01.09.2026 – 30.09.2026', budget: 2500 }];
+      const newPlanned = [{ id: createCampaignId('planned'), name: 'Channel_Campaign name', plannedStart: '01.10.2026', budget: 2000 }];
+      
+      setCurrent(newCurrent);
+      setPlanned(newPlanned);
+      
+      // 顺便保存到本地，覆盖掉旧缓存
+      savePlanningState({ current: newCurrent, planned: newPlanned });
+    } else {
+      setCurrent(stored.current);
+      setPlanned(stored.planned);
+    }
+    
     setHydrated(true);
   }, []);
 
