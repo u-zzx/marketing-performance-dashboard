@@ -137,24 +137,24 @@ function PlanningTable({ columns, rows, emptyLabel, onEdit, onDelete }) {
                   </td>
                 ))}
                 <td className="p-4 print:hidden">
-                  <div className="flex justify-end gap-2 print:hidden">
-                    <button
-                      type="button"
-                      onClick={() => onEdit(row)}
-                      className="inline-flex items-center gap-1 rounded-xl border border-white/50 bg-white/40 hover:bg-white/60 backdrop-blur-sm px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition-all"
-                    >
-                      <Pencil size={12} />
-                      Bearbeiten
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onDelete(row)}
-                      className="inline-flex items-center gap-1 rounded-xl border border-red-200/50 bg-red-50/50 hover:bg-red-100/60 backdrop-blur-sm px-3 py-2 text-xs font-medium text-red-600 shadow-sm transition-all"
-                    >
-                      <Trash2 size={12} />
-                      Löschen
-                    </button>
-                  </div>
+                <div className="flex justify-end gap-2 print:hidden">
+  <button
+    type="button"
+    onClick={() => onEdit(row)}
+    title="Bearbeiten"
+    className="inline-flex items-center justify-center rounded-xl border border-white/50 bg-white/40 hover:bg-white/60 backdrop-blur-sm p-2 text-slate-700 shadow-sm transition-all hover:scale-105"
+  >
+    <Pencil size={16} />
+  </button>
+  <button
+    type="button"
+    onClick={() => onDelete(row)}
+    title="Löschen"
+    className="inline-flex items-center justify-center rounded-xl border border-red-200/50 bg-red-50/50 hover:bg-red-100/60 backdrop-blur-sm p-2 text-red-600 shadow-sm transition-all hover:scale-105"
+  >
+    <Trash2 size={16} />
+  </button>
+</div>
                 </td>
               </tr>
             ))
