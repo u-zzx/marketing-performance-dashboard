@@ -16,7 +16,7 @@ const EMPTY_PLANNED_FORM = { name: '', plannedStart: '', budget: '' };
 function Field({ label, children }) {
   return (
     <label className="block space-y-1.5">
-      <span className="text-xs font-medium text-slate-600">{label}</span>
+      <span className="text-xs font-medium text-slate-700">{label}</span>
       {children}
     </label>
   );
@@ -26,7 +26,7 @@ function TextInput(props) {
   return (
     <input
       {...props}
-      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+      className="w-full rounded-2xl border border-white/60 bg-white/40 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-purple-300 focus:bg-white/60 focus:shadow-md transition-all backdrop-blur-sm"
     />
   );
 }
@@ -40,9 +40,9 @@ function CampaignForm({ kind, values, onChange, onSubmit, onCancel, submitLabel 
         event.preventDefault();
         onSubmit();
       }}
-      className="mt-4 space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4"
+      className="mt-5 space-y-4 rounded-3xl border border-white/40 bg-white/30 backdrop-blur-md p-5 shadow-sm"
     >
-      <div className={`grid gap-3 ${isCurrent ? 'sm:grid-cols-3' : 'sm:grid-cols-3'}`}>
+      <div className={`grid gap-4 ${isCurrent ? 'sm:grid-cols-3' : 'sm:grid-cols-3'}`}>
         <Field label="Kampagne">
           <TextInput
             value={values.name}
@@ -80,17 +80,17 @@ function CampaignForm({ kind, values, onChange, onSubmit, onCancel, submitLabel 
           />
         </Field>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-3 pt-2">
         <button
           type="submit"
-          className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="rounded-2xl bg-white/60 hover:bg-white/80 backdrop-blur-md border border-white/60 px-4 py-2.5 text-sm font-medium text-slate-800 shadow-sm transition-all hover:-translate-y-0.5"
         >
           {submitLabel}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          className="rounded-2xl border border-white/40 bg-white/20 hover:bg-white/40 backdrop-blur-sm px-4 py-2.5 text-sm font-medium text-slate-700 transition-all hover:-translate-y-0.5"
         >
           Abbrechen
         </button>
@@ -101,47 +101,47 @@ function CampaignForm({ kind, values, onChange, onSubmit, onCancel, submitLabel 
 
 function PlanningTable({ columns, rows, emptyLabel, onEdit, onDelete }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-100">
+    <div className="overflow-x-auto rounded-2xl border border-white/40 bg-white/20 backdrop-blur-sm shadow-sm custom-scrollbar">
       <table className="w-full text-left text-sm">
-        <thead className="bg-slate-50 text-slate-600">
+        <thead className="bg-white/30 text-slate-700 border-b border-white/40">
           <tr>
             {columns.map((column) => (
               <th
                 key={column.key}
-                className={`p-3 font-medium ${column.align === 'right' ? 'text-right' : ''}`}
+                className={`p-4 font-medium ${column.align === 'right' ? 'text-right' : ''}`}
               >
                 {column.label}
               </th>
             ))}
-            <th className="p-3 text-right font-medium print:hidden">Aktionen</th>
+            <th className="p-4 text-right font-medium print:hidden">Aktionen</th>
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={columns.length + 1} className="p-6 text-center text-slate-400">
+              <td colSpan={columns.length + 1} className="p-8 text-center text-slate-500">
                 {emptyLabel}
               </td>
             </tr>
           ) : (
             rows.map((row) => (
-              <tr key={row.id} className="border-t border-slate-100">
+              <tr key={row.id} className="border-b border-white/20 hover:bg-white/40 transition-colors last:border-0">
                 {columns.map((column) => (
                   <td
                     key={column.key}
-                    className={`p-3 ${column.align === 'right' ? 'text-right tabular-nums' : ''} ${
-                      column.key === 'name' ? 'font-medium text-slate-800' : 'text-slate-700'
+                    className={`p-4 ${column.align === 'right' ? 'text-right tabular-nums text-slate-700' : ''} ${
+                      column.key === 'name' ? 'font-medium text-slate-800' : 'text-slate-600'
                     }`}
                   >
                     {column.render ? column.render(row) : row[column.key]}
                   </td>
                 ))}
-                <td className="p-3 print:hidden">
+                <td className="p-4 print:hidden">
                   <div className="flex justify-end gap-2 print:hidden">
                     <button
                       type="button"
                       onClick={() => onEdit(row)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                      className="inline-flex items-center gap-1 rounded-xl border border-white/50 bg-white/40 hover:bg-white/60 backdrop-blur-sm px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition-all"
                     >
                       <Pencil size={12} />
                       Bearbeiten
@@ -149,7 +149,7 @@ function PlanningTable({ columns, rows, emptyLabel, onEdit, onDelete }) {
                     <button
                       type="button"
                       onClick={() => onDelete(row)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                      className="inline-flex items-center gap-1 rounded-xl border border-red-200/50 bg-red-50/50 hover:bg-red-100/60 backdrop-blur-sm px-3 py-2 text-xs font-medium text-red-600 shadow-sm transition-all"
                     >
                       <Trash2 size={12} />
                       Löschen
@@ -265,26 +265,26 @@ export default function CampaignPlanning() {
     <section className="space-y-6">
       <div>
         <h2 className="text-xl font-bold text-slate-900">Campaign Planning</h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-slate-600">
           Manuell gepflegte Kampagnenplanung — unabhängig von hochgeladenen Performance-Daten.
         </p>
       </div>
 
       {formError && (
-        <p className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-600">
+        <p className="rounded-2xl border border-red-200/50 bg-red-50/80 backdrop-blur-md px-4 py-3 text-sm text-red-600 shadow-sm">
           {formError}
         </p>
       )}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="rounded-3xl border border-white/50 bg-white/30 backdrop-blur-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+          <div className="mb-5 flex items-start justify-between gap-3">
             <div>
               <h3 className="flex items-center gap-2 text-lg font-bold text-slate-800">
-                <CalendarRange className="text-emerald-500" size={20} />
+                <CalendarRange className="text-emerald-600" size={20} />
                 Current Campaigns
               </h3>
-              <p className="mt-1 text-xs text-slate-500">Laufende Kampagnen mit Budget und Laufzeit.</p>
+              <p className="mt-1 text-xs text-slate-600">Laufende Kampagnen mit Budget und Laufzeit.</p>
             </div>
             <button
               type="button"
@@ -294,7 +294,7 @@ export default function CampaignPlanning() {
                 setCurrentMode({ type: 'add' });
                 setCurrentForm(EMPTY_CURRENT_FORM);
               }}
-              className="inline-flex shrink-0 items-center rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 print:hidden"
+              className="inline-flex shrink-0 items-center rounded-2xl bg-white/40 hover:bg-white/60 backdrop-blur-md border border-white/60 shadow-sm px-4 py-2.5 text-sm font-medium text-slate-800 transition-all hover:-translate-y-0.5 print:hidden"
             >
               + Kampagne hinzufügen
             </button>
@@ -333,14 +333,14 @@ export default function CampaignPlanning() {
           )}
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="rounded-3xl border border-white/50 bg-white/30 backdrop-blur-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+          <div className="mb-5 flex items-start justify-between gap-3">
             <div>
               <h3 className="flex items-center gap-2 text-lg font-bold text-slate-800">
-                <CalendarRange className="text-purple-500" size={20} />
+                <CalendarRange className="text-purple-600" size={20} />
                 Planned Campaigns
               </h3>
-              <p className="mt-1 text-xs text-slate-500">Geplante Kampagnen mit Starttermin und Budget.</p>
+              <p className="mt-1 text-xs text-slate-600">Geplante Kampagnen mit Starttermin und Budget.</p>
             </div>
             <button
               type="button"
@@ -350,7 +350,7 @@ export default function CampaignPlanning() {
                 setPlannedMode({ type: 'add' });
                 setPlannedForm(EMPTY_PLANNED_FORM);
               }}
-              className="inline-flex shrink-0 items-center rounded-lg bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 print:hidden"
+              className="inline-flex shrink-0 items-center rounded-2xl bg-white/40 hover:bg-white/60 backdrop-blur-md border border-white/60 shadow-sm px-4 py-2.5 text-sm font-medium text-slate-800 transition-all hover:-translate-y-0.5 print:hidden"
             >
               + Kampagne hinzufügen
             </button>
