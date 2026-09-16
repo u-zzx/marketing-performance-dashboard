@@ -16,10 +16,22 @@ const COLUMN_MAPPING = {
 
 const GA4_COLUMN_MAPPING = {
   sourceMedium: [
+    'sitzung - primäre channelgruppe (standard-channelgruppe)', // 完全匹配新表格的第一列
+    'sitzung - primäre channelgruppe',
     'sitzung - quelle / medium',
     'source / medium',
     'quelle/medium',
     'session source / medium',
+    'session default channel group',
+    'default channel grouping'
+  ],
+  pagePath: [
+    'seitenpfad und bildschirmklasse', // 完全匹配新表格的第二列
+    'page path and screen class',
+    'seitenpfad',
+    'page path',
+    'landing page',
+    'zielseite'
   ],
   sessions: ['sitzungen', 'sessions'],
   engagedSessions: ['sitzungen mit interaktionen', 'engaged sessions'],
@@ -161,18 +173,14 @@ export default function Home() {
     if (!val) return 0;
     let str = val.toString().trim();
     
-    // 智能判断是欧洲格式还是标准格式
     const lastComma = str.lastIndexOf(',');
     const lastDot = str.lastIndexOf('.');
     
     if (lastComma > lastDot) {
-      // 欧洲格式 (例: 1.234,56)
       str = str.replace(/\./g, '').replace(',', '.');
     } else if (lastDot > lastComma) {
-      // 标准格式 (例: 1,234.56)
       str = str.replace(/,/g, '');
     } else {
-      // 只有一个符号的情况，把逗号统一转为点
       str = str.replace(',', '.');
     }
     
@@ -209,11 +217,11 @@ export default function Home() {
   };
 
   const formatEngagementRate = (value) => {
-      const num = Number(value);
-      if (!Number.isFinite(num)) return '0%';
-      const finalNum = num > 1 ? num : num * 100;
-      return `${finalNum.toFixed(2)}%`;
-    };
+    const num = Number(value);
+    if (!Number.isFinite(num)) return '0.00%';
+    return `${num.toFixed(2)}%`;
+  };
+
   const handleParse = (file, platform) => {
     Papa.parse(file, {
       header: true,
@@ -268,6 +276,7 @@ export default function Home() {
           const parsed = rows.slice(headerIndex + 1).map((row) => {
             const item = {
               sourceMedium: '',
+              pagePath: '', // 确保初始化新字段
               sessions: 0,
               engagedSessions: 0,
               engagementRate: 0,
@@ -278,6 +287,8 @@ export default function Home() {
               const value = row[index];
               if (stdKey === 'sourceMedium') {
                 item.sourceMedium = String(value ?? '').trim();
+              } else if (stdKey === 'pagePath') {
+                item.pagePath = String(value ?? '').trim(); // 提取页面路径
               } else if (stdKey === 'avgEngagementTime') {
                 item.avgEngagementTime = parseEngagementTime(value);
               } else if (stdKey === 'engagementRate') {
@@ -409,23 +420,25 @@ export default function Home() {
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm print:shadow-none print:border print:rounded-none print:break-inside-avoid">
               <h2 className="font-semibold text-lg flex items-center gap-2 mb-4">
                 <Globe className="text-purple-500" size={20} />
-                GA4 Website Traffic Performance ({ga4TrafficData.length > 10 ? `first 10 of ${ga4TrafficData.length}` : ga4TrafficData.length} sources)
+                GA4 Website Traffic Performance ({ga4TrafficData.length > 25 ? `first 25 of ${ga4TrafficData.length}` : ga4TrafficData.length} sources)
               </h2>
-              <div className="border border-slate-100 rounded-lg overflow-x-auto print:overflow-visible">
+              <div className="border border-slate-100 rounded-lg overflow-x-auto overflow-y-auto max-h-[500px] print:overflow-visible print:max-h-none">
                 <table className="w-full text-sm text-left print:text-xs">
-                  <thead className="bg-slate-50 text-slate-600">
+                  <thead className="bg-slate-50 text-slate-600 sticky top-0 z-10 shadow-sm print:static print:shadow-none">
                     <tr>
-                      <th className="p-3">Source / Medium</th>
+                      <th className="p-3 whitespace-nowrap">Source / Channel</th>
+                      <th className="p-3">Page Path</th> {/* 新增表头 */}
                       <th className="p-3 text-right">Sessions</th>
                       <th className="p-3 text-right">Engaged Sessions</th>
                       <th className="p-3 text-right">Engagement Rate</th>
-                      <th className="p-3 text-right">Avg. Engagement Time</th>
+                      <th className="p-3 text-right">Avg. Time</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {ga4TrafficData.slice(0, 10).map((row, i) => (
-                      <tr key={`${row.sourceMedium}-${i}`} className="border-t border-slate-100">
-                        <td className="p-3 font-medium text-slate-800">{row.sourceMedium}</td>
+                    {ga4TrafficData.slice(0, 25).map((row, i) => (
+                      <tr key={`${row.sourceMedium}-${i}`} className="border-t border-slate-100 bg-white hover:bg-slate-50 transition-colors">
+                        <td className="p-3 font-medium text-slate-800 whitespace-nowrap">{row.sourceMedium}</td>
+                        <td className="p-3 text-slate-500 break-all min-w-[150px]">{row.pagePath || '—'}</td> {/* 新增数据列 */}
                         <td className="p-3 text-right tabular-nums">{row.sessions.toLocaleString('de-DE')}</td>
                         <td className="p-3 text-right tabular-nums">{row.engagedSessions.toLocaleString('de-DE')}</td>
                         <td className="p-3 text-right tabular-nums">{formatEngagementRate(row.engagementRate)}</td>
@@ -438,7 +451,7 @@ export default function Home() {
             </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:break-inside-avoid">
+<div className="grid grid-cols-1 gap-6 print:break-inside-avoid">
               <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm print:shadow-none print:border print:rounded-none">
                 <label htmlFor="comment-marketing" className="block text-lg font-semibold text-slate-800 mb-3">
                   Comment - Marketing
