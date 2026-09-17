@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Papa from 'papaparse';
-import { Upload, CheckCircle2, AlertCircle, RefreshCw, Printer, Globe, Trash2 } from 'lucide-react';
+import { Upload, CheckCircle2, AlertCircle, RefreshCw, Printer, Globe, Trash2, Pencil } from 'lucide-react';
 import CampaignPlanning from '@/components/CampaignPlanning';
 
 const COLUMN_MAPPING = {
@@ -131,8 +131,14 @@ export default function Home() {
   const [linkedInData, setLinkedInData] = useState([]);
   const [ga4TrafficData, setGa4TrafficData] = useState([]);
   const [error, setError] = useState('');
+  
   const [commentMarketing, setCommentMarketing] = useState('');
   const [commentSales, setCommentSales] = useState('');
+  
+  // 新增：编辑状态控制（默认处于编辑状态）
+  const [isEditingMarketing, setIsEditingMarketing] = useState(true);
+  const [isEditingSales, setIsEditingSales] = useState(true);
+  
   const [storageReady, setStorageReady] = useState(false);
 
   useEffect(() => {
@@ -142,6 +148,11 @@ export default function Home() {
     setGa4TrafficData(stored.ga4TrafficData);
     setCommentMarketing(stored.commentMarketing);
     setCommentSales(stored.commentSales);
+    
+    // 智能判断：如果缓存中有数据，直接进入“展示模式”；如果为空，则进入“编辑模式”
+    setIsEditingMarketing(!stored.commentMarketing);
+    setIsEditingSales(!stored.commentSales);
+    
     setStorageReady(true);
   }, []);
 
@@ -165,6 +176,9 @@ export default function Home() {
     setGa4TrafficData([]);
     setCommentMarketing('');
     setCommentSales('');
+    // 清空数据时，重置为编辑模式
+    setIsEditingMarketing(true);
+    setIsEditingSales(true);
     setError('');
     window.localStorage.removeItem(PERFORMANCE_STORAGE_KEY);
   };
@@ -396,22 +410,21 @@ export default function Home() {
                       <th className="p-4">Spend</th>
                       <th className="p-4">Impressions</th>
                       <th className="p-4">Clicks</th>
-                      <th className="p-4">CPC</th> {/* 新增的 CPC 表头 */}
+                      <th className="p-4">CPC</th> 
                       <th className="p-4">Conversions / Leads</th>
                     </tr>
                   </thead>
                   <tbody>
                     {allData.map((row, i) => {
-                      // 新增的 CPC 计算逻辑：花费除以点击量，如果点击量为 0，则 CPC 为 0
                       const cpc = row.clicks > 0 ? (row.spend / row.clicks) : 0;
                       return (
                       <tr key={`${row.platform}-${i}`} className="border-b border-white/20 hover:bg-white/40 transition-colors last:border-0">
-                        <td className="p-4"><span className={`px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-white/50 ${row.platform === 'Google' ? 'bg-emerald-100/60 text-emerald-800' : 'bg-blue-100/60 text-blue-800'}`}>{row.platform}</span></td>
+                        <td className="p-4"><span className={`px-3 py-1 rounded-full text-xs font-semibold shadow-sm print:shadow-none border border-white/50 print:border-slate-200 ${row.platform === 'Google' ? 'bg-emerald-100/60 print:bg-emerald-100 text-emerald-800' : 'bg-blue-100/60 print:bg-blue-100 text-blue-800'}`}>{row.platform}</span></td>
                         <td className="p-4 font-medium text-slate-900">{row.campaign}</td>
                         <td className="p-4 text-slate-800">€{row.spend.toFixed(2)}</td>
                         <td className="p-4 text-slate-800">{row.impressions}</td>
                         <td className="p-4 text-slate-800">{row.clicks}</td>
-                        <td className="p-4 text-slate-800">€{cpc.toFixed(2)}</td> {/* 新增的 CPC 数据列 */}
+                        <td className="p-4 text-slate-800">€{cpc.toFixed(2)}</td>
                         <td className="p-4 text-slate-800">{row.conversions}</td>
                       </tr>
                     )})}
@@ -457,30 +470,93 @@ export default function Home() {
             )}
 
             <div className="grid grid-cols-1 gap-6 print:break-inside-avoid">
+              
+              {/* Marketing Comment Block */}
               <div className="bg-white/30 backdrop-blur-2xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 rounded-3xl print:shadow-none print:border print:rounded-none">
-                <label htmlFor="comment-marketing" className="block text-lg font-semibold text-slate-900 mb-3">
-                  Comment - Marketing
-                </label>
-                <textarea
-                  id="comment-marketing"
-                  value={commentMarketing}
-                  onChange={(e) => setCommentMarketing(e.target.value)}
-                  placeholder="Marketing notes for this report…"
-                  className="w-full min-h-40 rounded-2xl border border-white/60 bg-white/40 px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#ff8311]/50 focus:bg-white/60 focus:shadow-md transition-all print:border-slate-300 placeholder:text-slate-500 backdrop-blur-sm"
-                />
+                <div className="flex items-center justify-between mb-3">
+                  <label htmlFor="comment-marketing" className="block text-lg font-semibold text-slate-900">
+                    Comment - Marketing
+                  </label>
+                  {!isEditingMarketing && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingMarketing(true)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-white/50 bg-white/40 hover:bg-white/60 backdrop-blur-sm px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition-all print:hidden"
+                    >
+                      <Pencil size={14} /> Bearbeiten
+                    </button>
+                  )}
+                </div>
+
+                {isEditingMarketing ? (
+                  <div className="space-y-3">
+                    <textarea
+                      id="comment-marketing"
+                      value={commentMarketing}
+                      onChange={(e) => setCommentMarketing(e.target.value)}
+                      placeholder="Marketing notes for this report…"
+                      className="w-full min-h-40 rounded-2xl border border-white/60 bg-white/40 px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#ff8311]/50 focus:bg-white/60 focus:shadow-md transition-all print:border-slate-300 placeholder:text-slate-500 backdrop-blur-sm"
+                    />
+                    <div className="flex justify-end print:hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingMarketing(false)}
+                        className="rounded-xl bg-white/60 hover:bg-white/80 backdrop-blur-md border border-white/60 px-4 py-2 text-sm font-medium text-slate-800 shadow-sm transition-all hover:-translate-y-0.5"
+                      >
+                        Speichern
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full min-h-40 rounded-2xl border border-white/30 bg-white/20 px-4 py-3 text-sm text-slate-800 backdrop-blur-sm whitespace-pre-wrap print:border-slate-300 print:bg-white print:text-slate-900 print:shadow-none">
+                    {commentMarketing || <span className="text-slate-500 italic">Keine Notizen vorhanden.</span>}
+                  </div>
+                )}
               </div>
+
+              {/* Sales Comment Block */}
               <div className="bg-white/30 backdrop-blur-2xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 rounded-3xl print:shadow-none print:border print:rounded-none">
-                <label htmlFor="comment-sales" className="block text-lg font-semibold text-slate-900 mb-3">
-                  Comment - Sales
-                </label>
-                <textarea
-                  id="comment-sales"
-                  value={commentSales}
-                  onChange={(e) => setCommentSales(e.target.value)}
-                  placeholder="Sales notes for this report…"
-                  className="w-full min-h-40 rounded-2xl border border-white/60 bg-white/40 px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#ff8311]/50 focus:bg-white/60 focus:shadow-md transition-all print:border-slate-300 placeholder:text-slate-500 backdrop-blur-sm"
-                />
+                <div className="flex items-center justify-between mb-3">
+                  <label htmlFor="comment-sales" className="block text-lg font-semibold text-slate-900">
+                    Comment - Sales
+                  </label>
+                  {!isEditingSales && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingSales(true)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-white/50 bg-white/40 hover:bg-white/60 backdrop-blur-sm px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition-all print:hidden"
+                    >
+                      <Pencil size={14} /> Bearbeiten
+                    </button>
+                  )}
+                </div>
+
+                {isEditingSales ? (
+                  <div className="space-y-3">
+                    <textarea
+                      id="comment-sales"
+                      value={commentSales}
+                      onChange={(e) => setCommentSales(e.target.value)}
+                      placeholder="Sales notes for this report…"
+                      className="w-full min-h-40 rounded-2xl border border-white/60 bg-white/40 px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#ff8311]/50 focus:bg-white/60 focus:shadow-md transition-all print:border-slate-300 placeholder:text-slate-500 backdrop-blur-sm"
+                    />
+                    <div className="flex justify-end print:hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingSales(false)}
+                        className="rounded-xl bg-white/60 hover:bg-white/80 backdrop-blur-md border border-white/60 px-4 py-2 text-sm font-medium text-slate-800 shadow-sm transition-all hover:-translate-y-0.5"
+                      >
+                        Speichern
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full min-h-40 rounded-2xl border border-white/30 bg-white/20 px-4 py-3 text-sm text-slate-800 backdrop-blur-sm whitespace-pre-wrap print:border-slate-300 print:bg-white print:text-slate-900 print:shadow-none">
+                    {commentSales || <span className="text-slate-500 italic">Keine Notizen vorhanden.</span>}
+                  </div>
+                )}
               </div>
+
             </div>
           </div>
         ) : (
