@@ -396,20 +396,25 @@ export default function Home() {
                       <th className="p-4">Spend</th>
                       <th className="p-4">Impressions</th>
                       <th className="p-4">Clicks</th>
+                      <th className="p-4">CPC</th> {/* 新增的 CPC 表头 */}
                       <th className="p-4">Conversions / Leads</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {allData.map((row, i) => (
+                    {allData.map((row, i) => {
+                      // 新增的 CPC 计算逻辑：花费除以点击量，如果点击量为 0，则 CPC 为 0
+                      const cpc = row.clicks > 0 ? (row.spend / row.clicks) : 0;
+                      return (
                       <tr key={`${row.platform}-${i}`} className="border-b border-white/20 hover:bg-white/40 transition-colors last:border-0">
                         <td className="p-4"><span className={`px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-white/50 ${row.platform === 'Google' ? 'bg-emerald-100/60 text-emerald-800' : 'bg-blue-100/60 text-blue-800'}`}>{row.platform}</span></td>
                         <td className="p-4 font-medium text-slate-900">{row.campaign}</td>
                         <td className="p-4 text-slate-800">€{row.spend.toFixed(2)}</td>
                         <td className="p-4 text-slate-800">{row.impressions}</td>
                         <td className="p-4 text-slate-800">{row.clicks}</td>
+                        <td className="p-4 text-slate-800">€{cpc.toFixed(2)}</td> {/* 新增的 CPC 数据列 */}
                         <td className="p-4 text-slate-800">{row.conversions}</td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               </div>
