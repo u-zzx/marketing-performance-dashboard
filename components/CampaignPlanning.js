@@ -16,7 +16,7 @@ const EMPTY_PLANNED_FORM = { name: '', plannedStart: '', budget: '' };
 function Field({ label, children }) {
   return (
     <label className="block space-y-1.5">
-      <span className="text-xs font-medium text-slate-700">{label}</span>
+      <span className="text-xs font-medium text-muted">{label}</span>
       {children}
     </label>
   );
@@ -26,7 +26,7 @@ function TextInput(props) {
   return (
     <input
       {...props}
-      className="w-full rounded-2xl border border-white/60 bg-white/40 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-purple-300 focus:bg-white/60 focus:shadow-md transition-all backdrop-blur-sm"
+      className="w-full rounded-control border border-line bg-surface px-4 py-2.5 text-sm text-foreground outline-none focus:border-accent focus:bg-raised  transition-colors "
     />
   );
 }
@@ -40,7 +40,7 @@ function CampaignForm({ kind, values, onChange, onSubmit, onCancel, submitLabel 
         event.preventDefault();
         onSubmit();
       }}
-      className="mt-5 space-y-4 rounded-3xl border border-white/40 bg-white/30 backdrop-blur-md p-5 shadow-sm"
+      className="mt-5 space-y-4 rounded-panel border border-line bg-surface  p-5 "
     >
       <div className={`grid gap-4 ${isCurrent ? 'sm:grid-cols-3' : 'sm:grid-cols-3'}`}>
         <Field label="Kampagne">
@@ -83,14 +83,14 @@ function CampaignForm({ kind, values, onChange, onSubmit, onCancel, submitLabel 
       <div className="flex flex-wrap gap-3 pt-2">
         <button
           type="submit"
-          className="rounded-2xl bg-white/60 hover:bg-white/80 backdrop-blur-md border border-white/60 px-4 py-2.5 text-sm font-medium text-slate-800 shadow-sm transition-all hover:-translate-y-0.5"
+          className="rounded-control bg-surface hover:bg-raised  border border-line px-4 py-2.5 text-sm font-medium text-foreground  transition-colors "
         >
           {submitLabel}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-2xl border border-white/40 bg-white/20 hover:bg-white/40 backdrop-blur-sm px-4 py-2.5 text-sm font-medium text-slate-700 transition-all hover:-translate-y-0.5"
+          className="rounded-control border border-line bg-surface hover:bg-raised  px-4 py-2.5 text-sm font-medium text-muted transition-colors "
         >
           Abbrechen
         </button>
@@ -101,9 +101,9 @@ function CampaignForm({ kind, values, onChange, onSubmit, onCancel, submitLabel 
 
 function PlanningTable({ columns, rows, emptyLabel, onEdit, onDelete }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-white/40 bg-white/20 backdrop-blur-sm shadow-sm custom-scrollbar">
+    <div className="overflow-x-auto rounded-control border border-line bg-surface   custom-scrollbar">
       <table className="w-full text-left text-sm">
-        <thead className="bg-white/30 text-slate-700 border-b border-white/40">
+        <thead className="bg-surface text-muted border-b border-line">
           <tr>
             {columns.map((column) => (
               <th
@@ -119,18 +119,18 @@ function PlanningTable({ columns, rows, emptyLabel, onEdit, onDelete }) {
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={columns.length + 1} className="p-8 text-center text-slate-500">
+              <td colSpan={columns.length + 1} className="p-8 text-center text-muted">
                 {emptyLabel}
               </td>
             </tr>
           ) : (
             rows.map((row) => (
-              <tr key={row.id} className="border-b border-white/20 hover:bg-white/40 transition-colors last:border-0">
+              <tr key={row.id} className="border-b border-line hover:bg-raised transition-colors last:border-0">
                 {columns.map((column) => (
                   <td
                     key={column.key}
-                    className={`p-4 ${column.align === 'right' ? 'text-right tabular-nums text-slate-700' : ''} ${
-                      column.key === 'name' ? 'font-medium text-slate-800' : 'text-slate-600'
+                    className={`p-4 ${column.align === 'right' ? 'text-right tabular-nums text-muted' : ''} ${
+                      column.key === 'name' ? 'font-medium text-foreground' : 'text-muted'
                     }`}
                   >
                     {column.render ? column.render(row) : row[column.key]}
@@ -142,7 +142,7 @@ function PlanningTable({ columns, rows, emptyLabel, onEdit, onDelete }) {
                       type="button"
                       onClick={() => onEdit(row)}
                       title="Bearbeiten"
-                      className="inline-flex items-center justify-center rounded-xl border border-white/50 bg-white/40 hover:bg-white/60 backdrop-blur-sm p-2 text-slate-700 shadow-sm transition-all hover:scale-105"
+                      className="inline-flex items-center justify-center rounded-control border border-line bg-surface hover:bg-raised  p-2 text-muted  transition-colors "
                     >
                       <Pencil size={16} />
                     </button>
@@ -150,7 +150,7 @@ function PlanningTable({ columns, rows, emptyLabel, onEdit, onDelete }) {
                       type="button"
                       onClick={() => onDelete(row)}
                       title="Löschen"
-                      className="inline-flex items-center justify-center rounded-xl border border-red-200/50 bg-red-50/50 hover:bg-red-100/60 backdrop-blur-sm p-2 text-red-600 shadow-sm transition-all hover:scale-105"
+                      className="inline-flex items-center justify-center rounded-control border border-danger/30 bg-danger/10 hover:bg-danger/20  p-2 text-danger  transition-colors "
                     >
                       <Trash2 size={16} />
                     </button>
@@ -281,29 +281,29 @@ export default function CampaignPlanning() {
   };
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-10">
       <div>
-        <h2 className="text-xl font-bold text-slate-900">Campaign Planning</h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <h2 className="text-2xl font-normal text-foreground">Campaign Planning</h2>
+        <p className="mt-1 text-sm text-muted">
           Manuell gepflegte Kampagnenplanung — unabhängig von hochgeladenen Performance-Daten.
         </p>
       </div>
 
       {formError && (
-        <p className="rounded-2xl border border-red-200/50 bg-red-50/80 backdrop-blur-md px-4 py-3 text-sm text-red-600 shadow-sm">
+        <p className="rounded-control border border-danger/30 bg-danger/10  px-4 py-3 text-sm text-danger ">
           {formError}
         </p>
       )}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <div className="rounded-3xl border border-white/50 bg-white/30 backdrop-blur-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-          <div className="mb-5 flex items-start justify-between gap-3">
+        <div className="rounded-panel border border-line bg-surface  p-6 ">
+          <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h3 className="flex items-center gap-2 text-lg font-bold text-slate-800">
-                <CalendarRange className="text-emerald-600" size={20} />
+              <h3 className="flex items-center gap-2 text-lg font-medium text-foreground">
+                <CalendarRange className="text-accent" size={20} />
                 Current Campaigns
               </h3>
-              <p className="mt-1 text-xs text-slate-600">Laufende Kampagnen mit Budget und Laufzeit.</p>
+              <p className="mt-1 text-xs text-muted">Laufende Kampagnen mit Budget und Laufzeit.</p>
             </div>
             <button
               type="button"
@@ -313,7 +313,7 @@ export default function CampaignPlanning() {
                 setCurrentMode({ type: 'add' });
                 setCurrentForm(EMPTY_CURRENT_FORM);
               }}
-              className="inline-flex shrink-0 items-center rounded-2xl bg-white/40 hover:bg-white/60 backdrop-blur-md border border-white/60 shadow-sm px-4 py-2.5 text-sm font-medium text-slate-800 transition-all hover:-translate-y-0.5 print:hidden"
+              className="inline-flex shrink-0 items-center rounded-control bg-surface hover:bg-raised  border border-line  px-4 py-2.5 text-sm font-medium text-foreground transition-colors  print:hidden"
             >
               + Kampagne hinzufügen
             </button>
@@ -352,14 +352,14 @@ export default function CampaignPlanning() {
           )}
         </div>
 
-        <div className="rounded-3xl border border-white/50 bg-white/30 backdrop-blur-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-          <div className="mb-5 flex items-start justify-between gap-3">
+        <div className="rounded-panel border border-line bg-surface  p-6 ">
+          <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h3 className="flex items-center gap-2 text-lg font-bold text-slate-800">
-                <CalendarRange className="text-purple-600" size={20} />
+              <h3 className="flex items-center gap-2 text-lg font-medium text-foreground">
+                <CalendarRange className="text-accent" size={20} />
                 Planned Campaigns
               </h3>
-              <p className="mt-1 text-xs text-slate-600">Geplante Kampagnen mit Starttermin und Budget.</p>
+              <p className="mt-1 text-xs text-muted">Geplante Kampagnen mit Starttermin und Budget.</p>
             </div>
             <button
               type="button"
@@ -369,7 +369,7 @@ export default function CampaignPlanning() {
                 setPlannedMode({ type: 'add' });
                 setPlannedForm(EMPTY_PLANNED_FORM);
               }}
-              className="inline-flex shrink-0 items-center rounded-2xl bg-white/40 hover:bg-white/60 backdrop-blur-md border border-white/60 shadow-sm px-4 py-2.5 text-sm font-medium text-slate-800 transition-all hover:-translate-y-0.5 print:hidden"
+              className="inline-flex shrink-0 items-center rounded-control bg-surface hover:bg-raised  border border-line  px-4 py-2.5 text-sm font-medium text-foreground transition-colors  print:hidden"
             >
               + Kampagne hinzufügen
             </button>

@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import Papa from 'papaparse';
 import { Upload, CheckCircle2, AlertCircle, RefreshCw, Printer, Globe, Trash2, Pencil } from 'lucide-react';
 import CampaignPlanning from '@/components/CampaignPlanning';
+import Ga4LandingAnalysis from '@/components/Ga4LandingAnalysis';
+import { parseGa4Csv } from '@/lib/ga4';
 
 const COLUMN_MAPPING = {
   date: ['date', 'datum', 'day', 'tag', 'startdatum (in utc)', 'startdatum'],
@@ -12,35 +14,6 @@ const COLUMN_MAPPING = {
   impressions: ['impressions', 'impressionen'],
   clicks: ['clicks', 'klicks'],
   conversions: ['conversions', 'abschlüsse', 'leads', 'kontakte']
-};
-
-const GA4_COLUMN_MAPPING = {
-  sourceMedium: [
-    'sitzung - primäre channelgruppe (standard-channelgruppe)', 
-    'sitzung - primäre channelgruppe',
-    'sitzung - quelle / medium',
-    'source / medium',
-    'quelle/medium',
-    'session source / medium',
-    'session default channel group',
-    'default channel grouping'
-  ],
-  pagePath: [
-    'seitenpfad und bildschirmklasse', 
-    'page path and screen class',
-    'seitenpfad',
-    'page path',
-    'landing page',
-    'zielseite'
-  ],
-  sessions: ['sitzungen', 'sessions'],
-  engagedSessions: ['sitzungen mit interaktionen', 'engaged sessions'],
-  engagementRate: ['engagement-rate', 'engagement rate'],
-  avgEngagementTime: [
-    'durchschnittliche interaktionsdauer pro sitzung',
-    'average engagement time',
-    'durchschn. interaktionsdauer pro sitzung',
-  ],
 };
 
 function normalizeHeader(rawCol) {
@@ -52,43 +25,12 @@ function normalizeHeader(rawCol) {
     .trim();
 }
 
-function compactHeader(rawCol) {
-  return normalizeHeader(rawCol)
-    .replace(/['"]/g, '')
-    .replace(/\s*\/\s*/g, '/')
-    .replace(/\s*-\s*/g, '-');
-}
-
 function getMappedKey(rawCol, mapping) {
   const lower = normalizeHeader(rawCol);
   for (const [key, aliases] of Object.entries(mapping)) {
     if (aliases.includes(lower)) return key;
   }
   return null;
-}
-
-function getGa4MappedKey(rawCol) {
-  const compact = compactHeader(rawCol);
-  if (!compact) return null;
-
-  const rankedAliases = Object.entries(GA4_COLUMN_MAPPING)
-    .flatMap(([key, aliases]) => aliases.map((alias) => ({ key, alias: compactHeader(alias) })))
-    .sort((a, b) => b.alias.length - a.alias.length);
-
-  for (const { key, alias } of rankedAliases) {
-    if (compact === alias) return key;
-  }
-
-  for (const { key, alias } of rankedAliases) {
-    if (alias.length >= 10 && compact.includes(alias)) return key;
-  }
-
-  return null;
-}
-
-function isGa4HeaderRow(cells) {
-  const mapped = cells.map((cell) => getGa4MappedKey(cell));
-  return mapped.includes('sourceMedium') && mapped.includes('sessions');
 }
 
 const PERFORMANCE_STORAGE_KEY = 'marketing-performance:v1';
@@ -203,33 +145,6 @@ export default function Home() {
     return isNaN(num) ? 0 : num;
   };
 
-  const parseEngagementRate = (val) => {
-    if (val === '' || val == null) return 0;
-    const raw = val.toString().trim();
-    const hasPercent = raw.includes('%');
-    const num = parseNumber(raw);
-    if (!Number.isFinite(num)) return 0;
-    if (hasPercent) return num;
-    return num <= 1 ? num * 100 : num;
-  };
-
-  const parseEngagementTime = (val) => {
-    if (val === '' || val == null) return '';
-    const raw = String(val).trim();
-    if (!raw) return '';
-    if (raw.includes(':') || /[a-zA-Z]/.test(raw)) return raw;
-    const seconds = parseNumber(raw);
-    if (!Number.isFinite(seconds)) return raw;
-    const total = Math.round(seconds);
-    const hours = Math.floor(total / 3600);
-    const minutes = Math.floor((total % 3600) / 60);
-    const secs = total % 60;
-    if (hours > 0) {
-      return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-    }
-    return `${minutes}:${String(secs).padStart(2, '0')}`;
-  };
-
   const formatEngagementRate = (value) => {
     const num = Number(value);
     if (!Number.isFinite(num)) return '0.00%';
@@ -267,65 +182,13 @@ export default function Home() {
     });
   };
 
-  const handleParseGa4 = (file) => {
-    Papa.parse(file, {
-      header: false,
-      skipEmptyLines: 'greedy',
-      delimiter: '',
-      complete: (results) => {
-        try {
-          const rows = (results.data || [])
-            .map((row) => (Array.isArray(row) ? row : Object.values(row)).map((cell) => String(cell ?? '').replace(/\uFEFF/g, '').trim()))
-            .filter((row) => row.some((cell) => cell && !cell.startsWith('#')));
-
-          const headerIndex = rows.findIndex(isGa4HeaderRow);
-          if (headerIndex === -1) {
-            setError('Failed to parse GA4 CSV. Please check that Source / Medium and Sessions columns are present.');
-            return;
-          }
-
-          const headerCells = rows[headerIndex];
-          const columnKeys = headerCells.map((cell) => getGa4MappedKey(cell));
-
-          const parsed = rows.slice(headerIndex + 1).map((row) => {
-            const item = {
-              sourceMedium: '',
-              pagePath: '', 
-              sessions: 0,
-              engagedSessions: 0,
-              engagementRate: 0,
-              avgEngagementTime: '',
-            };
-            columnKeys.forEach((stdKey, index) => {
-              if (!stdKey) return;
-              const value = row[index];
-              if (stdKey === 'sourceMedium') {
-                item.sourceMedium = String(value ?? '').trim();
-              } else if (stdKey === 'pagePath') {
-                item.pagePath = String(value ?? '').trim(); 
-              } else if (stdKey === 'avgEngagementTime') {
-                item.avgEngagementTime = parseEngagementTime(value);
-              } else if (stdKey === 'engagementRate') {
-                item.engagementRate = parseEngagementRate(value);
-              } else {
-                item[stdKey] = parseNumber(value);
-              }
-            });
-            return item;
-          }).filter((item) => item.sourceMedium && !/^(gesamt|total)$/i.test(item.sourceMedium));
-
-          if (parsed.length === 0) {
-            setError('Failed to parse GA4 CSV. Please check that Source / Medium and Sessions columns are present.');
-            return;
-          }
-
-          setGa4TrafficData(parsed);
-          setError('');
-        } catch (err) {
-          setError('Failed to parse GA4 CSV. Please check the file format.');
-        }
-      }
-    });
+  const handleParseGa4 = async (file) => {
+    try {
+      setGa4TrafficData(parseGa4Csv(await file.text()));
+      setError('');
+    } catch (err) {
+      setError(`Failed to parse GA4 CSV. ${err.message}`);
+    }
   };
 
   const allData = [...googleData, ...linkedInData];
@@ -334,27 +197,27 @@ export default function Home() {
   const hasPerformanceData = hasAdsData || hasGa4Data;
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-[#ff8311] via-[#ffe9d5] to-[#ff8311] p-8 font-sans text-slate-800 print:bg-white print:p-0">
-      <div className="max-w-7xl mx-auto space-y-6 print:max-w-none">
+    <div className="dashboard min-h-screen bg-background px-4 py-8 sm:px-8 lg:px-12 font-sans text-foreground print:bg-white print:p-0">
+      <div className="dashboard-content max-w-[1440px] mx-auto space-y-10 print:max-w-none">
         
-        {/* Header - Apple Glassmorphism */}
-        <div className="bg-white/30 backdrop-blur-2xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 rounded-3xl flex flex-wrap justify-between items-center gap-4 print:shadow-none print:border-0 print:rounded-none print:p-0">
+        {/* Dashboard header */}
+        <div className="dashboard-header">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">eddyson Marketing Performance Dashboard</h1>
-            <p className="text-sm text-slate-700 mt-1 print:hidden">Data Visualization & Campaign Roadmap</p>
+            <h1 className="dashboard-title">eddyson Marketing Performance Dashboard</h1>
+            <p className="text-sm text-muted mt-1 print:hidden">Data Visualization & Campaign Roadmap</p>
           </div>
-          <div className="flex flex-wrap gap-3 print:hidden">
-            <label className="flex items-center gap-2 bg-gradient-to-r from-emerald-100/70 to-teal-100/70 hover:from-emerald-200/80 hover:to-teal-200/80 text-emerald-800 border border-white/60 backdrop-blur-md shadow-sm px-5 py-2.5 rounded-2xl cursor-pointer text-sm font-medium transition-all hover:-translate-y-0.5">
+          <div className="dashboard-actions flex flex-wrap gap-3 print:hidden">
+            <label className="flex items-center gap-2      text-accent border border-line   px-5 py-2.5 rounded-control cursor-pointer text-sm font-medium transition-colors ">
               <Upload size={16} />
               {googleData.length > 0 ? 'Re-upload Google CSV' : 'Upload Google CSV'}
               <input type="file" accept=".csv" className="hidden" onChange={(e) => e.target.files[0] && handleParse(e.target.files[0], 'Google')} />
             </label>
-            <label className="flex items-center gap-2 bg-gradient-to-r from-blue-100/70 to-cyan-100/70 hover:from-blue-200/80 hover:to-cyan-200/80 text-blue-800 border border-white/60 backdrop-blur-md shadow-sm px-5 py-2.5 rounded-2xl cursor-pointer text-sm font-medium transition-all hover:-translate-y-0.5">
+            <label className="flex items-center gap-2      text-accent border border-line   px-5 py-2.5 rounded-control cursor-pointer text-sm font-medium transition-colors ">
               <Upload size={16} />
               {linkedInData.length > 0 ? 'Re-upload LinkedIn CSV' : 'Upload LinkedIn CSV'}
               <input type="file" accept=".csv" className="hidden" onChange={(e) => e.target.files[0] && handleParse(e.target.files[0], 'LinkedIn')} />
             </label>
-            <label className="flex items-center gap-2 bg-gradient-to-r from-purple-100/70 to-fuchsia-100/70 hover:from-purple-200/80 hover:to-fuchsia-200/80 text-purple-800 border border-white/60 backdrop-blur-md shadow-sm px-5 py-2.5 rounded-2xl cursor-pointer text-sm font-medium transition-all hover:-translate-y-0.5">
+            <label className="flex items-center gap-2      text-accent border border-line   px-5 py-2.5 rounded-control cursor-pointer text-sm font-medium transition-colors ">
               <Upload size={16} />
               {ga4TrafficData.length > 0 ? 'Re-upload GA4 Traffic CSV' : 'Upload GA4 Traffic CSV'}
               <input type="file" accept=".csv" className="hidden" onChange={(e) => e.target.files[0] && handleParseGa4(e.target.files[0])} />
@@ -362,7 +225,7 @@ export default function Home() {
             <button
               type="button"
               onClick={() => window.print()}
-              className="flex items-center gap-2 bg-white/70 hover:bg-white/80 text-slate-700 border border-white/60 backdrop-blur-md shadow-sm px-5 py-2.5 rounded-2xl cursor-pointer text-sm font-medium transition-all hover:-translate-y-0.5"
+              className="flex items-center gap-2 bg-surface hover:bg-raised text-muted border border-line   px-5 py-2.5 rounded-control cursor-pointer text-sm font-medium transition-colors "
             >
               <Printer size={16} />
               Export to PDF
@@ -370,7 +233,7 @@ export default function Home() {
             <button
               type="button"
               onClick={handleResetData}
-              className="flex items-center gap-2 bg-gradient-to-r from-rose-100/70 to-pink-100/70 hover:from-rose-200/80 hover:to-pink-200/80 text-rose-700 border border-white/60 backdrop-blur-md shadow-sm px-5 py-2.5 rounded-2xl cursor-pointer text-sm font-medium transition-all hover:-translate-y-0.5"
+              className="flex items-center gap-2      text-danger border border-line   px-5 py-2.5 rounded-control cursor-pointer text-sm font-medium transition-colors "
             >
               <Trash2 size={16} />
               Reset / Clear Data
@@ -379,7 +242,7 @@ export default function Home() {
         </div>
 
         {error && (
-          <div className="bg-red-50/80 backdrop-blur-md text-red-600 p-4 rounded-2xl flex items-center gap-2 border border-red-200/50 text-sm print:hidden shadow-sm">
+          <div className="bg-danger/10  text-danger p-4 rounded-control flex items-center gap-2 border border-danger/30 text-sm print:hidden ">
             <AlertCircle size={18} /> {error}
           </div>
         )}
@@ -387,23 +250,23 @@ export default function Home() {
         <CampaignPlanning />
 
         {hasPerformanceData ? (
-          <div className="space-y-6">
+          <div className="space-y-10">
             <div className="print:hidden">
-              <h2 className="text-xl font-bold text-slate-900">Marketing Performance</h2>
-              <p className="mt-1 text-sm text-slate-700">
+              <h2 className="text-2xl font-normal text-foreground">Marketing Performance</h2>
+              <p className="mt-1 text-sm text-muted">
                 Kennzahlen aus hochgeladenen Google Ads-, LinkedIn- und GA4-CSV-Dateien.
               </p>
             </div>
 
             {hasAdsData && (
-            <div className="bg-white/30 backdrop-blur-2xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 rounded-3xl print:shadow-none print:border print:rounded-none print:break-inside-avoid">
-               <h2 className="font-semibold text-lg flex items-center gap-2 mb-4">
-                <CheckCircle2 className="text-emerald-700" size={20} />
+            <div className="bg-surface  border border-line  p-6 rounded-panel print:shadow-none print:border print:rounded-none print:break-inside-avoid">
+               <h2 className="font-medium text-lg flex items-center gap-2 mb-4">
+                <CheckCircle2 className="text-accent" size={20} />
                 Raw Data Preview (Google: {googleData.length} | LinkedIn: {linkedInData.length})
               </h2>
-              <div className="border border-white/40 bg-white/20 rounded-2xl overflow-hidden backdrop-blur-sm shadow-sm">
+              <div className="border border-line bg-surface rounded-control overflow-x-auto  ">
                 <table className="w-full text-sm text-left">
-                  <thead className="bg-white/30 text-slate-800 border-b border-white/40">
+                  <thead className="bg-surface text-foreground border-b border-line">
                     <tr>
                       <th className="p-4">Platform</th>
                       <th className="p-4">Campaign</th>
@@ -418,14 +281,14 @@ export default function Home() {
                     {allData.map((row, i) => {
                       const cpc = row.clicks > 0 ? (row.spend / row.clicks) : 0;
                       return (
-                      <tr key={`${row.platform}-${i}`} className="border-b border-white/20 hover:bg-white/40 transition-colors last:border-0">
-                        <td className="p-4"><span className={`px-3 py-1 rounded-full text-xs font-semibold shadow-sm print:shadow-none border border-white/50 print:border-slate-200 ${row.platform === 'Google' ? 'bg-emerald-100/60 print:bg-emerald-100 text-emerald-800' : 'bg-blue-100/60 print:bg-blue-100 text-blue-800'}`}>{row.platform}</span></td>
-                        <td className="p-4 font-medium text-slate-900">{row.campaign}</td>
-                        <td className="p-4 text-slate-800">€{row.spend.toFixed(2)}</td>
-                        <td className="p-4 text-slate-800">{row.impressions}</td>
-                        <td className="p-4 text-slate-800">{row.clicks}</td>
-                        <td className="p-4 text-slate-800">€{cpc.toFixed(2)}</td>
-                        <td className="p-4 text-slate-800">{row.conversions}</td>
+                      <tr key={`${row.platform}-${i}`} className="border-b border-line hover:bg-raised transition-colors last:border-0">
+                        <td className="p-4"><span className={`px-3 py-1 rounded-full text-xs font-medium  print:shadow-none border border-line print:border-slate-200 ${row.platform === 'Google' ? 'bg-raised print:bg-emerald-100 text-accent' : 'bg-raised print:bg-blue-100 text-accent'}`}>{row.platform}</span></td>
+                        <td className="p-4 font-medium text-foreground">{row.campaign}</td>
+                        <td className="p-4 text-foreground">€{row.spend.toFixed(2)}</td>
+                        <td className="p-4 text-foreground">{row.impressions}</td>
+                        <td className="p-4 text-foreground">{row.clicks}</td>
+                        <td className="p-4 text-foreground">€{cpc.toFixed(2)}</td>
+                        <td className="p-4 text-foreground">{row.conversions}</td>
                       </tr>
                     )})}
                   </tbody>
@@ -435,53 +298,54 @@ export default function Home() {
             )}
 
             {hasGa4Data && (
-            <div className="bg-white/30 backdrop-blur-2xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 rounded-3xl print:shadow-none print:border print:rounded-none print:break-inside-avoid">
-              <h2 className="font-semibold text-lg flex items-center gap-2 mb-4 text-slate-900">
-                <Globe className="text-purple-700" size={20} />
+            <div className="bg-surface  border border-line  p-6 rounded-panel print:shadow-none print:border print:rounded-none print:break-inside-auto">
+              <h2 className="font-medium text-lg flex items-center gap-2 mb-4 text-foreground">
+                <Globe className="text-accent" size={20} />
                 GA4 Website Traffic Performance ({ga4TrafficData.length > 25 ? `first 25 of ${ga4TrafficData.length}` : ga4TrafficData.length} sources)
               </h2>
-              <div className="border border-white/40 bg-white/20 rounded-2xl overflow-x-auto overflow-y-auto max-h-[500px] backdrop-blur-sm shadow-sm print:overflow-visible print:max-h-none custom-scrollbar">
+              <div className="border border-line bg-surface rounded-control overflow-x-auto overflow-y-auto max-h-[500px]   print:overflow-visible print:max-h-none custom-scrollbar">
                 <table className="w-full text-sm text-left print:text-xs">
-                  <thead className="bg-white/40 text-slate-800 sticky top-0 z-10 shadow-sm backdrop-blur-xl print:static print:shadow-none">
+                  <thead className="bg-surface text-foreground sticky top-0 z-10   print:static print:shadow-none">
                     <tr>
-                      <th className="p-4 whitespace-nowrap border-b border-white/50">Source / Channel</th>
-                      <th className="p-4 border-b border-white/50">Page Path</th>
-                      <th className="p-4 text-right border-b border-white/50">Sessions</th>
-                      <th className="p-4 text-right border-b border-white/50">Engaged Sessions</th>
-                      <th className="p-4 text-right border-b border-white/50">Engagement Rate</th>
-                      <th className="p-4 text-right border-b border-white/50">Avg. Time</th>
+                      <th className="p-4 whitespace-nowrap border-b border-line">Source / Channel</th>
+                      <th className="p-4 border-b border-line">Page Path</th>
+                      <th className="p-4 text-right border-b border-line">Sessions</th>
+                      <th className="p-4 text-right border-b border-line">Engaged Sessions</th>
+                      <th className="p-4 text-right border-b border-line">Engagement Rate</th>
+                      <th className="p-4 text-right border-b border-line">Avg. Time</th>
                     </tr>
                   </thead>
                   <tbody>
                     {ga4TrafficData.slice(0, 25).map((row, i) => (
-                      <tr key={`${row.sourceMedium}-${i}`} className="border-b border-white/20 hover:bg-white/40 transition-colors last:border-0">
-                        <td className="p-4 font-medium text-slate-900 whitespace-nowrap">{row.sourceMedium}</td>
-                        <td className="p-4 text-slate-700 break-all min-w-[150px]">{row.pagePath || '—'}</td>
-                        <td className="p-4 text-right tabular-nums text-slate-800">{row.sessions.toLocaleString('de-DE')}</td>
-                        <td className="p-4 text-right tabular-nums text-slate-800">{row.engagedSessions.toLocaleString('de-DE')}</td>
-                        <td className="p-4 text-right tabular-nums text-slate-800">{formatEngagementRate(row.engagementRate)}</td>
-                        <td className="p-4 text-right tabular-nums text-slate-800">{row.avgEngagementTime || '—'}</td>
+                      <tr key={`${row.sourceMedium}-${i}`} className="border-b border-line hover:bg-raised transition-colors last:border-0">
+                        <td className="p-4 font-medium text-foreground whitespace-nowrap">{row.sourceMedium}</td>
+                        <td className="p-4 text-muted break-all min-w-[150px]">{row.pagePath || '—'}</td>
+                        <td className="p-4 text-right tabular-nums text-foreground">{row.sessions.toLocaleString('de-DE')}</td>
+                        <td className="p-4 text-right tabular-nums text-foreground">{row.engagedSessions.toLocaleString('de-DE')}</td>
+                        <td className="p-4 text-right tabular-nums text-foreground">{formatEngagementRate(row.engagementRate)}</td>
+                        <td className="p-4 text-right tabular-nums text-foreground">{row.avgEngagementTime || '—'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+              <Ga4LandingAnalysis rows={ga4TrafficData} />
             </div>
             )}
 
             <div className="grid grid-cols-1 gap-6 print:break-inside-avoid">
               
               {/* Marketing Comment Block */}
-              <div className="bg-white/30 backdrop-blur-2xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 rounded-3xl print:shadow-none print:border print:rounded-none">
+              <div className="bg-surface  border border-line  p-6 rounded-panel print:shadow-none print:border print:rounded-none">
                 <div className="flex items-center justify-between mb-3">
-                  <label htmlFor="comment-marketing" className="block text-lg font-semibold text-slate-900">
+                  <label htmlFor="comment-marketing" className="block text-lg font-medium text-foreground">
                     Comment - Marketing
                   </label>
                   {!isEditingMarketing && (
                     <button
                       type="button"
                       onClick={() => setIsEditingMarketing(true)}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-white/50 bg-white/40 hover:bg-white/60 backdrop-blur-sm px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition-all print:hidden"
+                      className="inline-flex items-center gap-1.5 rounded-control border border-line bg-surface hover:bg-raised  px-3 py-1.5 text-xs font-medium text-muted  transition-colors print:hidden"
                     >
                       <Pencil size={14} /> Bearbeiten
                     </button>
@@ -495,36 +359,36 @@ export default function Home() {
                       value={commentMarketing}
                       onChange={(e) => setCommentMarketing(e.target.value)}
                       placeholder="Marketing notes for this report…"
-                      className="w-full min-h-40 rounded-2xl border border-white/60 bg-white/40 px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#ff8311]/50 focus:bg-white/60 focus:shadow-md transition-all print:border-slate-300 placeholder:text-slate-500 backdrop-blur-sm"
+                      className="w-full min-h-40 rounded-control border border-line bg-surface px-4 py-3 text-sm text-foreground outline-none focus:border-accent focus:bg-raised  transition-colors print:border-slate-300 placeholder:text-muted "
                     />
                     <div className="flex justify-end print:hidden">
                       <button
                         type="button"
                         onClick={() => setIsEditingMarketing(false)}
-                        className="rounded-xl bg-white/60 hover:bg-white/80 backdrop-blur-md border border-white/60 px-4 py-2 text-sm font-medium text-slate-800 shadow-sm transition-all hover:-translate-y-0.5"
+                        className="rounded-control bg-surface hover:bg-raised  border border-line px-4 py-2 text-sm font-medium text-foreground  transition-colors "
                       >
                         Speichern
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="w-full min-h-40 rounded-2xl border border-white/30 bg-white/20 px-4 py-3 text-sm text-slate-800 backdrop-blur-sm whitespace-pre-wrap print:border-slate-300 print:bg-white print:text-slate-900 print:shadow-none">
-                    {commentMarketing || <span className="text-slate-500 italic">Keine Notizen vorhanden.</span>}
+                  <div className="w-full min-h-40 rounded-control border border-line bg-surface px-4 py-3 text-sm text-foreground  whitespace-pre-wrap print:border-slate-300 print:bg-white print:text-slate-900 print:shadow-none">
+                    {commentMarketing || <span className="text-muted italic">Keine Notizen vorhanden.</span>}
                   </div>
                 )}
               </div>
 
               {/* Sales Comment Block */}
-              <div className="bg-white/30 backdrop-blur-2xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 rounded-3xl print:shadow-none print:border print:rounded-none">
+              <div className="bg-surface  border border-line  p-6 rounded-panel print:shadow-none print:border print:rounded-none">
                 <div className="flex items-center justify-between mb-3">
-                  <label htmlFor="comment-sales" className="block text-lg font-semibold text-slate-900">
+                  <label htmlFor="comment-sales" className="block text-lg font-medium text-foreground">
                     Comment - Sales
                   </label>
                   {!isEditingSales && (
                     <button
                       type="button"
                       onClick={() => setIsEditingSales(true)}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-white/50 bg-white/40 hover:bg-white/60 backdrop-blur-sm px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition-all print:hidden"
+                      className="inline-flex items-center gap-1.5 rounded-control border border-line bg-surface hover:bg-raised  px-3 py-1.5 text-xs font-medium text-muted  transition-colors print:hidden"
                     >
                       <Pencil size={14} /> Bearbeiten
                     </button>
@@ -538,21 +402,21 @@ export default function Home() {
                       value={commentSales}
                       onChange={(e) => setCommentSales(e.target.value)}
                       placeholder="Sales notes for this report…"
-                      className="w-full min-h-40 rounded-2xl border border-white/60 bg-white/40 px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#ff8311]/50 focus:bg-white/60 focus:shadow-md transition-all print:border-slate-300 placeholder:text-slate-500 backdrop-blur-sm"
+                      className="w-full min-h-40 rounded-control border border-line bg-surface px-4 py-3 text-sm text-foreground outline-none focus:border-accent focus:bg-raised  transition-colors print:border-slate-300 placeholder:text-muted "
                     />
                     <div className="flex justify-end print:hidden">
                       <button
                         type="button"
                         onClick={() => setIsEditingSales(false)}
-                        className="rounded-xl bg-white/60 hover:bg-white/80 backdrop-blur-md border border-white/60 px-4 py-2 text-sm font-medium text-slate-800 shadow-sm transition-all hover:-translate-y-0.5"
+                        className="rounded-control bg-surface hover:bg-raised  border border-line px-4 py-2 text-sm font-medium text-foreground  transition-colors "
                       >
                         Speichern
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="w-full min-h-40 rounded-2xl border border-white/30 bg-white/20 px-4 py-3 text-sm text-slate-800 backdrop-blur-sm whitespace-pre-wrap print:border-slate-300 print:bg-white print:text-slate-900 print:shadow-none">
-                    {commentSales || <span className="text-slate-500 italic">Keine Notizen vorhanden.</span>}
+                  <div className="w-full min-h-40 rounded-control border border-line bg-surface px-4 py-3 text-sm text-foreground  whitespace-pre-wrap print:border-slate-300 print:bg-white print:text-slate-900 print:shadow-none">
+                    {commentSales || <span className="text-muted italic">Keine Notizen vorhanden.</span>}
                   </div>
                 )}
               </div>
@@ -560,10 +424,10 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          <div className="bg-white/30 backdrop-blur-2xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-12 rounded-3xl text-center text-slate-600 space-y-3 print:hidden">
-            <RefreshCw size={40} className="mx-auto opacity-50 animate-spin-slow text-slate-600" />
-            <p className="font-medium text-slate-800 text-lg">Waiting for CSV upload</p>
-            <p className="text-sm text-slate-700">Supports raw CSV exports from Google Ads, LinkedIn Ads, and GA4</p>
+          <div className="bg-surface  border border-line  p-12 rounded-panel text-center text-muted space-y-3 print:hidden">
+            <RefreshCw size={40} className="mx-auto opacity-50 animate-spin-slow text-muted" />
+            <p className="font-medium text-foreground text-lg">Waiting for CSV upload</p>
+            <p className="text-sm text-muted">Supports raw CSV exports from Google Ads, LinkedIn Ads, and GA4</p>
           </div>
         )}
 
