@@ -1,37 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Papa from 'papaparse';
 import { Upload, CheckCircle2, AlertCircle, RefreshCw, Printer, Globe, Trash2, Pencil } from 'lucide-react';
 import CampaignPlanning from '@/components/CampaignPlanning';
 import Ga4LandingAnalysis from '@/components/Ga4LandingAnalysis';
 import { parseGa4Csv } from '@/lib/ga4';
-
-const COLUMN_MAPPING = {
-  date: ['date', 'datum', 'day', 'tag', 'startdatum (in utc)', 'startdatum'],
-  campaign: ['campaign', 'kampagne', 'campaign name', 'kampagnenname', 'name der kampagne', 'anzeigengruppe', 'name der anzeigengruppe'],
-  spend: ['spend', 'cost', 'kosten', 'amount spent', 'ausgaben', 'gesamtausgaben'],
-  impressions: ['impressions', 'impressionen'],
-  clicks: ['clicks', 'klicks'],
-  conversions: ['conversions', 'abschlüsse', 'leads', 'kontakte']
-};
-
-function normalizeHeader(rawCol) {
-  return String(rawCol ?? '')
-    .toLowerCase()
-    .replace(/\uFEFF/g, '')
-    .replace(/[–—−]/g, '-')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function getMappedKey(rawCol, mapping) {
-  const lower = normalizeHeader(rawCol);
-  for (const [key, aliases] of Object.entries(mapping)) {
-    if (aliases.includes(lower)) return key;
-  }
-  return null;
-}
+import { readAdsCsv } from '@/lib/adsCsv';
 
 const PERFORMANCE_STORAGE_KEY = 'marketing-performance:v1';
 
@@ -125,61 +99,21 @@ export default function Home() {
     window.localStorage.removeItem(PERFORMANCE_STORAGE_KEY);
   };
 
-  const parseNumber = (val) => {
-    if (!val) return 0;
-    let str = val.toString().trim();
-    
-    const lastComma = str.lastIndexOf(',');
-    const lastDot = str.lastIndexOf('.');
-    
-    if (lastComma > lastDot) {
-      str = str.replace(/\./g, '').replace(',', '.');
-    } else if (lastDot > lastComma) {
-      str = str.replace(/,/g, '');
-    } else {
-      str = str.replace(',', '.');
-    }
-    
-    let clean = str.replace(/[^0-9.-]+/g, "");
-    const num = parseFloat(clean);
-    return isNaN(num) ? 0 : num;
-  };
-
   const formatEngagementRate = (value) => {
     const num = Number(value);
     if (!Number.isFinite(num)) return '0.00%';
     return `${num.toFixed(2)}%`;
   };
 
-  const handleParse = (file, platform) => {
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        try {
-          const parsed = results.data.map(row => {
-            let item = { platform, date: '', campaign: '', spend: 0, impressions: 0, clicks: 0, conversions: 0 };
-            Object.keys(row).forEach(rawCol => {
-              const stdKey = getMappedKey(rawCol, COLUMN_MAPPING);
-              if (stdKey) {
-                if (['date', 'campaign'].includes(stdKey)) {
-                  item[stdKey] = row[rawCol];
-                } else {
-                  item[stdKey] = parseNumber(row[rawCol]);
-                }
-              }
-            });
-            return item;
-          }).filter(item => item.campaign);
-
-          if (platform === 'Google') setGoogleData(parsed);
-          if (platform === 'LinkedIn') setLinkedInData(parsed);
-          setError('');
-        } catch (err) {
-          setError(`Failed to parse ${platform} CSV. Please check the file format.`);
-        }
-      }
-    });
+  const handleParse = async (file, platform) => {
+    try {
+      const result = await readAdsCsv(file, platform);
+      if (result.platform === 'Google') setGoogleData(result.rows);
+      if (result.platform === 'LinkedIn') setLinkedInData(result.rows);
+      setError('');
+    } catch (err) {
+      setError(`Failed to parse CSV. ${err.message}`);
+    }
   };
 
   const handleParseGa4 = async (file) => {
