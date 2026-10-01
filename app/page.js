@@ -15,6 +15,7 @@ const EMPTY_PERFORMANCE_STATE = {
   ga4TrafficData: [],
   commentMarketing: '',
   commentSales: '',
+  meetingNotes: '',
 };
 
 function loadPerformanceState() {
@@ -31,6 +32,7 @@ function loadPerformanceState() {
       ga4TrafficData: Array.isArray(parsed?.ga4TrafficData) ? parsed.ga4TrafficData : [],
       commentMarketing: typeof parsed?.commentMarketing === 'string' ? parsed.commentMarketing : '',
       commentSales: typeof parsed?.commentSales === 'string' ? parsed.commentSales : '',
+      meetingNotes: typeof parsed?.meetingNotes === 'string' ? parsed.meetingNotes : '',
     };
   } catch {
     return EMPTY_PERFORMANCE_STATE;
@@ -50,10 +52,12 @@ export default function Home() {
   
   const [commentMarketing, setCommentMarketing] = useState('');
   const [commentSales, setCommentSales] = useState('');
+  const [meetingNotes, setMeetingNotes] = useState('');
   
   // 新增：编辑状态控制（默认处于编辑状态）
   const [isEditingMarketing, setIsEditingMarketing] = useState(true);
   const [isEditingSales, setIsEditingSales] = useState(true);
+  const [isEditingMeeting, setIsEditingMeeting] = useState(true);
   
   const [storageReady, setStorageReady] = useState(false);
 
@@ -64,10 +68,12 @@ export default function Home() {
     setGa4TrafficData(stored.ga4TrafficData);
     setCommentMarketing(stored.commentMarketing);
     setCommentSales(stored.commentSales);
+    setMeetingNotes(stored.meetingNotes);
     
     // 智能判断：如果缓存中有数据，直接进入“展示模式”；如果为空，则进入“编辑模式”
     setIsEditingMarketing(!stored.commentMarketing);
     setIsEditingSales(!stored.commentSales);
+    setIsEditingMeeting(!stored.meetingNotes);
     
     setStorageReady(true);
   }, []);
@@ -80,11 +86,12 @@ export default function Home() {
       ga4TrafficData,
       commentMarketing,
       commentSales,
+      meetingNotes,
     });
-  }, [storageReady, googleData, linkedInData, ga4TrafficData, commentMarketing, commentSales]);
+  }, [storageReady, googleData, linkedInData, ga4TrafficData, commentMarketing, commentSales, meetingNotes]);
 
   const handleResetData = () => {
-    if (!window.confirm('Clear uploaded Google, LinkedIn, GA4 data and comments? Campaign Planning is not affected.')) {
+    if (!window.confirm('Clear uploaded Google, LinkedIn, GA4 data, comments and meeting notes? Campaign Planning is not affected.')) {
       return;
     }
     setGoogleData([]);
@@ -92,9 +99,11 @@ export default function Home() {
     setGa4TrafficData([]);
     setCommentMarketing('');
     setCommentSales('');
+    setMeetingNotes('');
     // 清空数据时，重置为编辑模式
     setIsEditingMarketing(true);
     setIsEditingSales(true);
+    setIsEditingMeeting(true);
     setError('');
     window.localStorage.removeItem(PERFORMANCE_STORAGE_KEY);
   };
@@ -267,13 +276,13 @@ export default function Home() {
             </div>
             )}
 
-            <div className="grid grid-cols-1 gap-6 print:break-inside-avoid">
+            <div className="grid grid-cols-1 gap-6">
               
               {/* Marketing Comment Block */}
               <div className="bg-surface  border border-line  p-6 rounded-panel print:shadow-none print:border print:rounded-none">
                 <div className="flex items-center justify-between mb-3">
                   <label htmlFor="comment-marketing" className="block text-lg font-medium text-foreground">
-                    Comment - Marketing
+                    Performance Review - Marketing
                   </label>
                   {!isEditingMarketing && (
                     <button
@@ -286,8 +295,9 @@ export default function Home() {
                   )}
                 </div>
 
+                {isEditingMarketing && <div className="hidden whitespace-pre-wrap break-words print:block">{commentMarketing}</div>}
                 {isEditingMarketing ? (
-                  <div className="space-y-3">
+                  <div className="space-y-3 print:hidden">
                     <textarea
                       id="comment-marketing"
                       value={commentMarketing}
@@ -306,7 +316,7 @@ export default function Home() {
                     </div>
                   </div>
                 ) : (
-                  <div className="w-full min-h-40 rounded-control border border-line bg-surface px-4 py-3 text-sm text-foreground  whitespace-pre-wrap print:border-slate-300 print:bg-white print:text-slate-900 print:shadow-none">
+                  <div className="w-full min-h-40 rounded-control border border-line bg-surface px-4 py-3 text-sm text-foreground  whitespace-pre-wrap break-words print:border-slate-300 print:bg-white print:text-slate-900 print:shadow-none">
                     {commentMarketing || <span className="text-muted italic">Keine Notizen vorhanden.</span>}
                   </div>
                 )}
@@ -316,7 +326,7 @@ export default function Home() {
               <div className="bg-surface  border border-line  p-6 rounded-panel print:shadow-none print:border print:rounded-none">
                 <div className="flex items-center justify-between mb-3">
                   <label htmlFor="comment-sales" className="block text-lg font-medium text-foreground">
-                    Comment - Sales
+                    Feedback - Sales
                   </label>
                   {!isEditingSales && (
                     <button
@@ -329,8 +339,9 @@ export default function Home() {
                   )}
                 </div>
 
+                {isEditingSales && <div className="hidden whitespace-pre-wrap break-words print:block">{commentSales}</div>}
                 {isEditingSales ? (
-                  <div className="space-y-3">
+                  <div className="space-y-3 print:hidden">
                     <textarea
                       id="comment-sales"
                       value={commentSales}
@@ -349,8 +360,51 @@ export default function Home() {
                     </div>
                   </div>
                 ) : (
-                  <div className="w-full min-h-40 rounded-control border border-line bg-surface px-4 py-3 text-sm text-foreground  whitespace-pre-wrap print:border-slate-300 print:bg-white print:text-slate-900 print:shadow-none">
+                  <div className="w-full min-h-40 rounded-control border border-line bg-surface px-4 py-3 text-sm text-foreground  whitespace-pre-wrap break-words print:border-slate-300 print:bg-white print:text-slate-900 print:shadow-none">
                     {commentSales || <span className="text-muted italic">Keine Notizen vorhanden.</span>}
+                  </div>
+                )}
+              </div>
+              {/* Meeting Notes Block */}
+              <div className="bg-surface  border border-line  p-6 rounded-panel print:shadow-none print:border print:rounded-none">
+                <div className="flex items-center justify-between mb-3">
+                  <label htmlFor="meeting-notes" className="block text-lg font-medium text-foreground">
+                    Campaign Planning Meeting – Decisions &amp; To-Dos
+                  </label>
+                  {!isEditingMeeting && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingMeeting(true)}
+                      className="inline-flex items-center gap-1.5 rounded-control border border-line bg-surface hover:bg-raised  px-3 py-1.5 text-xs font-medium text-muted  transition-colors print:hidden"
+                    >
+                      <Pencil size={14} /> Bearbeiten
+                    </button>
+                  )}
+                </div>
+
+                {isEditingMeeting && <div className="hidden whitespace-pre-wrap break-words print:block">{meetingNotes}</div>}
+                {isEditingMeeting ? (
+                  <div className="space-y-3 print:hidden">
+                    <textarea
+                      id="meeting-notes"
+                      value={meetingNotes}
+                      onChange={(e) => setMeetingNotes(e.target.value)}
+                      placeholder="Meeting decisions, owners and next steps…"
+                      className="w-full min-h-40 rounded-control border border-line bg-surface px-4 py-3 text-sm text-foreground outline-none focus:border-accent focus:bg-raised  transition-colors print:border-slate-300 placeholder:text-muted "
+                    />
+                    <div className="flex justify-end print:hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingMeeting(false)}
+                        className="rounded-control bg-surface hover:bg-raised  border border-line px-4 py-2 text-sm font-medium text-foreground  transition-colors "
+                      >
+                        Speichern
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full min-h-40 rounded-control border border-line bg-surface px-4 py-3 text-sm text-foreground  whitespace-pre-wrap break-words print:border-slate-300 print:bg-white print:text-slate-900 print:shadow-none">
+                    {meetingNotes || <span className="text-muted italic">Keine Notizen vorhanden.</span>}
                   </div>
                 )}
               </div>

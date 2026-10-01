@@ -38,24 +38,25 @@
 }
 
 body { background: var(--background); color: var(--foreground); font-family: var(--font-geist-sans), Arial, sans-serif; }
-.dashboard { line-height: 1.6; }
+.dashboard { line-height: 1.7; letter-spacing: .012em; --text-sm: .9375rem; --text-xs: .8125rem; }
 .dashboard-content > * + * { margin-top: var(--space-section); }
 .dashboard-header { position: relative; isolation: isolate; padding: 2rem 0 2.5rem; border-bottom: 1px solid var(--line); }
 .dashboard-header::before { content: ''; position: absolute; z-index: -1; top: 1.5rem; right: 3rem; width: 140px; height: 140px; border-radius: 40% 60% 65% 35%; background: linear-gradient(135deg, #ff914f, #df4b90 55%, #7d3ddc); filter: blur(22px); opacity: .55; transform: rotate(-20deg); pointer-events: none; }
 .dashboard-title { max-width: 1000px; font-size: clamp(2rem, 4.5vw, 4.5rem); line-height: 1.1; letter-spacing: -.055em; font-weight: 300; padding-bottom: 1.25rem; }
 .dashboard-actions { margin-top: 2rem; }
-.dashboard-actions > :is(button, label) { background: var(--surface); font-size: .8rem; }
+.dashboard-actions > :is(button, label) { background: var(--surface); font-size: .875rem; }
 .dashboard-actions > :is(button, label):hover { background: var(--raised); }
 .dashboard :is(h2,h3,h4) { letter-spacing: -.025em; }
 .dashboard .rounded-panel { padding: var(--space-card); }
-.dashboard :is(button, input, textarea) { font-family: inherit; }
+.dashboard :is(button, input, textarea) { font-family: inherit; letter-spacing: inherit; }
+.dashboard textarea { font-size: 1rem; line-height: 1.75; }
 .dashboard :is(button, label:has(input[type=file])) { cursor: pointer; }
 .dashboard :is(button, input, textarea):focus-visible, .dashboard label:has(input[type=file]):focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
 .dashboard input[type=file] { display: block; position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .dashboard :is(input:not([type=file]), textarea) { background: var(--background); }
 .dashboard table { font-variant-numeric: tabular-nums; }
-.dashboard th { font-size: .7rem; letter-spacing: .055em; font-weight: 500; color: var(--muted); }
-.dashboard td { font-size: .825rem; }
+.dashboard th { font-size: .8125rem; letter-spacing: .06em; font-weight: 500; color: var(--muted); }
+.dashboard td { font-size: .9375rem; }
 .dashboard thead { background: var(--surface); }
 .dashboard :is(input,textarea)::placeholder { color: var(--muted); opacity: .75; }
 .dashboard [role=tooltip] { border: 1px solid var(--line); box-shadow: 0 8px 30px #0004; }
