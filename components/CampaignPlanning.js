@@ -354,14 +354,7 @@ export default function CampaignPlanning() {
               { key: 'budget', label: 'budget', align: 'right', render: (row) => (
                 <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                   <span>{formatBudget(row.budget)}</span>
-                  <BudgetPeriodSelect
-                    label={`Budget period — ${row.name}`}
-                    value={row.budgetPeriod}
-                    onChange={(budgetPeriod) => setCurrent((rows) => rows.map((item) =>
-                      item.id === row.id ? { ...item, budgetPeriod } : item
-                    ))}
-                  />
-                  <span className="hidden print:inline">{row.budgetPeriod ?? 'month'}</span>
+                  <span>{row.budgetPeriod ?? 'month'}</span>
                 </div>
               ) },
             ]}

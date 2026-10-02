@@ -56,20 +56,15 @@ export default function Ga4LandingAnalysis({ rows }) {
 
   return (
     <section className="mt-6 space-y-5 border-t border-line pt-6" style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }} aria-labelledby="landing-analysis-title">
-      <h3 id="landing-analysis-title" className="text-lg font-medium text-foreground">Landing Page Analysis</h3>
       {!data.channels.length ? (
-        <p className="rounded-control border border-line bg-surface p-4 text-sm text-muted">
-          Upload a GA4 CSV containing Landingpage + Abfragestring, Sitzung – primäre Channelgruppe (Standard-Channelgruppe), and Sitzungen to see landing page charts. Your existing traffic table remains available above.
-        </p>
+        <>
+          <h3 id="landing-analysis-title" className="text-lg font-medium text-foreground">Landing Page Analysis</h3>
+          <p className="rounded-control border border-line bg-surface p-4 text-sm text-muted">
+            Upload a GA4 CSV containing Landingpage + Abfragestring, Sitzung – primäre Channelgruppe (Standard-Channelgruppe), and Sitzungen to see landing page charts. Your existing traffic table remains available above.
+          </p>
+        </>
       ) : (
         <>
-          <div>
-            <label htmlFor="landing-page-filter" className="mb-2 block text-sm font-medium text-foreground">Landing Page Filter</label>
-            <input id="landing-page-filter" type="search" value={filter} onChange={event => setFilter(event.target.value)} placeholder="Search landing page..."
-              className="w-full rounded-control border border-line bg-surface px-4 py-3 text-sm text-foreground outline-none focus:border-accent focus:bg-raised print:hidden" />
-            <p className="mt-2 text-xs text-muted print:hidden">Matches any part of the landing page, ignoring case. Only Top 5 Landing Pages by Sessions is filtered.</p>
-            <p className="hidden text-sm print:block">{filter || 'All landing pages'}</p>
-          </div>
           <div className={card}>
             <h4 className="mb-1 font-medium text-foreground">All Traffics (Source / Channel)</h4>
             <p className="mb-4 text-xs text-muted">{format(total)} sessions · All Source / Channel</p>
@@ -77,6 +72,14 @@ export default function Ga4LandingAnalysis({ rows }) {
                 {data.sources.map(row => <BarRow key={row.channel} label={row.channel} total={row.sessions} max={sourceMax} colors={colors} segments={[{ ...row, denominator: total }]} />)}
                 <Axis max={sourceMax} />
             </div>
+          </div>
+          <h3 id="landing-analysis-title" className="text-lg font-medium text-foreground">Landing Page Analysis</h3>
+          <div>
+            <label htmlFor="landing-page-filter" className="mb-2 block text-sm font-medium text-foreground">Landing Page Filter</label>
+            <input id="landing-page-filter" type="search" value={filter} onChange={event => setFilter(event.target.value)} placeholder="Search landing page..."
+              className="w-full rounded-control border border-line bg-surface px-4 py-3 text-sm text-foreground outline-none focus:border-accent focus:bg-raised print:hidden" />
+            <p className="mt-2 text-xs text-muted print:hidden">Matches any part of the landing page, ignoring case. Only Top 5 Landing Pages by Sessions is filtered.</p>
+            <p className="hidden text-sm print:block">{filter || 'All landing pages'}</p>
           </div>
           <div className={card}>
             <h4 className="mb-1 font-medium text-foreground">Top 5 Landing Pages by Sessions</h4>

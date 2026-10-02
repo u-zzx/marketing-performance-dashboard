@@ -55,7 +55,6 @@
     --chart-7: #98673c;
     --chart-8: #606fa6;
   }
-  :root[data-theme="light"] .cursor-glow { width: 48px; height: 48px; margin: -24px 0 0 -24px; }
   :root[data-theme="light"] .dashboard :is(input,textarea)::placeholder { opacity: 1; }
 }
 
@@ -67,9 +66,9 @@
   position: fixed;
   top: 0;
   left: 0;
-  width: 240px;
-  height: 240px;
-  margin: -120px 0 0 -120px;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
   z-index: 50;
   pointer-events: none;
   border-radius: 50%;
