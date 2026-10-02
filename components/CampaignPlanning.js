@@ -10,7 +10,7 @@ import {
   savePlanningState,
 } from '@/lib/campaignPlanning';
 
-const EMPTY_CURRENT_FORM = { name: '', laufzeit: '', budget: '' };
+const EMPTY_CURRENT_FORM = { name: '', laufzeit: '', budget: '', budgetPeriod: 'month' };
 const EMPTY_PLANNED_FORM = { name: '', plannedStart: '', budget: '' };
 
 function Field({ label, children }) {
@@ -28,6 +28,21 @@ function TextInput(props) {
       {...props}
       className="w-full rounded-control border border-line bg-surface px-4 py-2.5 text-sm text-foreground outline-none focus:border-accent focus:bg-raised  transition-colors "
     />
+  );
+}
+
+function BudgetPeriodSelect({ value, onChange, label = 'Budget period' }) {
+  return (
+    <select
+      aria-label={label}
+      value={value ?? 'month'}
+      onChange={(event) => onChange(event.target.value)}
+      className="shrink-0 rounded-control border border-line bg-background px-2 py-2.5 text-sm text-foreground focus:border-accent print:hidden"
+    >
+      <option value="day">day</option>
+      <option value="month">month</option>
+      <option value="total">total</option>
+    </select>
   );
 }
 
@@ -70,15 +85,27 @@ function CampaignForm({ kind, values, onChange, onSubmit, onCancel, submitLabel 
             />
           </Field>
         )}
-        <Field label={isCurrent ? 'Monthly Budget' : 'Budget'}>
-          <TextInput
-            value={values.budget}
-            onChange={(event) => onChange({ ...values, budget: event.target.value })}
-            placeholder={isCurrent ? "2500" : "2000"}
-            inputMode="decimal"
-            required
-          />
-        </Field>
+        <div className="min-w-0">
+          <div className="flex items-end gap-2">
+            <div className="min-w-0 flex-1">
+              <Field label={isCurrent ? 'budget' : 'Budget'}>
+                <TextInput
+                  value={values.budget}
+                  onChange={(event) => onChange({ ...values, budget: event.target.value })}
+                  placeholder={isCurrent ? "2500" : "2000"}
+                  inputMode="decimal"
+                  required
+                />
+              </Field>
+            </div>
+            {isCurrent && (
+              <BudgetPeriodSelect
+                value={values.budgetPeriod}
+                onChange={(budgetPeriod) => onChange({ ...values, budgetPeriod })}
+              />
+            )}
+          </div>
+        </div>
       </div>
       <div className="flex flex-wrap gap-3 pt-2">
         <button
@@ -186,7 +213,7 @@ export default function CampaignPlanning() {
 
     if (!stored || (stored.current.length === 0 && stored.planned.length === 0) || hasOldMockData) {
       // 如果是空数据或旧默认数据，强制覆盖为你要求的单行默认值
-      const newCurrent = [{ id: createCampaignId('current'), name: 'Channel_Campaign name', laufzeit: '01.09.2026 – 30.09.2026', budget: 2500 }];
+      const newCurrent = [{ id: createCampaignId('current'), name: 'Channel_Campaign name', laufzeit: '01.09.2026 – 30.09.2026', budget: 2500, budgetPeriod: 'month' }];
       const newPlanned = [{ id: createCampaignId('planned'), name: 'Channel_Campaign name', plannedStart: '01.10.2026', budget: 2000 }];
       
       setCurrent(newCurrent);
@@ -223,6 +250,7 @@ export default function CampaignPlanning() {
     const name = currentForm.name.trim();
     const laufzeit = currentForm.laufzeit.trim();
     const budget = parseBudgetInput(currentForm.budget);
+    const budgetPeriod = currentForm.budgetPeriod;
 
     if (!name || !laufzeit || budget == null) {
       setFormError('Bitte Kampagne, Laufzeit und ein gültiges Budget eingeben.');
@@ -232,11 +260,11 @@ export default function CampaignPlanning() {
     if (currentMode?.type === 'edit') {
       setCurrent((rows) =>
         rows.map((row) =>
-          row.id === currentMode.id ? { ...row, name, laufzeit, budget } : row
+          row.id === currentMode.id ? { ...row, name, laufzeit, budget, budgetPeriod } : row
         )
       );
     } else {
-      setCurrent((rows) => [...rows, { id: createCampaignId('current'), name, laufzeit, budget }]);
+      setCurrent((rows) => [...rows, { id: createCampaignId('current'), name, laufzeit, budget, budgetPeriod }]);
     }
 
     resetCurrentForm();
@@ -323,7 +351,19 @@ export default function CampaignPlanning() {
             columns={[
               { key: 'name', label: 'Kampagne' },
               { key: 'laufzeit', label: 'Laufzeit' },
-              { key: 'budget', label: 'Monthly Budget', align: 'right', render: (row) => formatBudget(row.budget) },
+              { key: 'budget', label: 'budget', align: 'right', render: (row) => (
+                <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                  <span>{formatBudget(row.budget)}</span>
+                  <BudgetPeriodSelect
+                    label={`Budget period — ${row.name}`}
+                    value={row.budgetPeriod}
+                    onChange={(budgetPeriod) => setCurrent((rows) => rows.map((item) =>
+                      item.id === row.id ? { ...item, budgetPeriod } : item
+                    ))}
+                  />
+                  <span className="hidden print:inline">{row.budgetPeriod ?? 'month'}</span>
+                </div>
+              ) },
             ]}
             rows={current}
             emptyLabel="Keine aktuellen Kampagnen"
@@ -334,6 +374,7 @@ export default function CampaignPlanning() {
               setCurrentForm({
                 name: row.name,
                 laufzeit: row.laufzeit,
+                budgetPeriod: row.budgetPeriod ?? 'month',
                 budget: String(row.budget),
               });
             }}

@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { Upload, CheckCircle2, AlertCircle, RefreshCw, Printer, Globe, Trash2, Pencil } from 'lucide-react';
 import CampaignPlanning from '@/components/CampaignPlanning';
+import ThemeToggle from '@/components/ThemeToggle';
+import CursorGlow from '@/components/CursorGlow';
 import Ga4LandingAnalysis from '@/components/Ga4LandingAnalysis';
 import { parseGa4Csv } from '@/lib/ga4';
 import { readAdsCsv } from '@/lib/adsCsv';
@@ -141,6 +143,7 @@ export default function Home() {
 
   return (
     <div className="dashboard min-h-screen bg-background px-4 py-8 sm:px-8 lg:px-12 font-sans text-foreground print:bg-white print:p-0">
+      <CursorGlow />
       <div className="dashboard-content max-w-[1440px] mx-auto space-y-10 print:max-w-none">
         
         {/* Dashboard header */}
@@ -150,6 +153,7 @@ export default function Home() {
             <p className="text-sm text-muted mt-1 print:hidden">Data Visualization & Campaign Roadmap</p>
           </div>
           <div className="dashboard-actions flex flex-wrap gap-3 print:hidden">
+            <ThemeToggle />
             <label className="flex items-center gap-2      text-accent border border-line   px-5 py-2.5 rounded-control cursor-pointer text-sm font-medium transition-colors ">
               <Upload size={16} />
               {googleData.length > 0 ? 'Re-upload Google CSV' : 'Upload Google CSV'}
